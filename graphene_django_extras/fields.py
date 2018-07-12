@@ -2,6 +2,10 @@
 import operator
 from functools import partial
 
+from django.utils import six
+
+from django_filters import filters
+
 from graphene import Field, List, ID, Argument
 from graphene.types.structures import Structure
 from graphene_django.filter.utils import get_filtering_args_from_filterset
@@ -182,8 +186,24 @@ class DjangoFilterPaginateListField(Field):
 
     def list_resolver(self, manager, filterset_class, filtering_args,
                       root, info, **kwargs):
-
-        filter_kwargs = {k: v for k, v in kwargs.items() if k in filtering_args}
+        def make_value(k, v):
+            filter_ = filterset_class.base_filters[k]
+            if (isinstance(filter_, filters.MultipleChoiceFilter) 
+                and isinstance(v, list)):
+                v = v[0]
+            classes_to_split = (filters.MultipleChoiceFilter, filters.RangeFilter)
+            if (isinstance(filter_, classes_to_split)
+                and isinstance(v, six.string_types)):
+                    v = v.split(',')
+            if isinstance(filter_, filters.RangeFilter):
+                return [('%s_%i' % (k, i), V) for i, V in enumerate(v)]
+            return [(k, v)]
+        filter_kwargs = dict([
+            (K, V)
+            for k, v in kwargs.items()
+            if k in filtering_args
+            for K, V in make_value(k, v)
+        ])
         qs = queryset_factory(manager, info.field_asts, info.fragments, **kwargs)
         qs = filterset_class(data=filter_kwargs, queryset=qs, request=info.context).qs
 
