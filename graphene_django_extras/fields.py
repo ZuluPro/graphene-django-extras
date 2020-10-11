@@ -8,9 +8,10 @@ from django_filters import filters
 
 from graphene import Field, List, ID, Argument
 from graphene.types.structures import Structure
-from graphene_django.filter.utils import get_filtering_args_from_filterset
+
 from graphene_django.utils import maybe_queryset, is_valid_django_model, DJANGO_FILTER_INSTALLED
 from graphene_django_extras.settings import graphql_api_settings
+from graphene_django.filter.utils import get_filtering_args_from_filterset
 
 from graphene_django_extras.filters.filter import get_filterset_class
 from .base_types import DjangoListObjectBase
@@ -141,6 +142,7 @@ class DjangoFilterListField(Field):
 
 
 class DjangoFilterPaginateListField(Field):
+    auto_id = True
 
     def __init__(self, _type, pagination=None, fields=None, extra_filter_meta=None,
                  filterset_class=None, *args, **kwargs):
@@ -159,7 +161,7 @@ class DjangoFilterPaginateListField(Field):
         kwargs.setdefault('args', {})
         kwargs['args'].update(self.filtering_args)
 
-        if 'id' not in kwargs['args'].keys():
+        if 'id' not in kwargs['args'].keys() and self.auto_id:
             self.filtering_args.update({'id': Argument(ID, description='Django object unique identification field')})
             kwargs['args'].update({'id': Argument(ID, description='Django object unique identification field')})
 
@@ -193,7 +195,7 @@ class DjangoFilterPaginateListField(Field):
             filter_ = filterset_class.base_filters[k]
             if (isinstance(filter_, filters.MultipleChoiceFilter) 
                 and isinstance(v, list)):
-                v = v[0]
+                v = v
             classes_to_split = (filters.MultipleChoiceFilter, filters.RangeFilter)
             if (isinstance(filter_, classes_to_split)
                 and isinstance(v, six.string_types)):
