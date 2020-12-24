@@ -2,8 +2,6 @@
 import operator
 from functools import partial
 
-from django.utils import six
-
 from django_filters import filters
 
 from graphene import Field, List, ID, Argument
@@ -198,7 +196,7 @@ class DjangoFilterPaginateListField(Field):
                 v = v
             classes_to_split = (filters.MultipleChoiceFilter, filters.RangeFilter)
             if (isinstance(filter_, classes_to_split)
-                and isinstance(v, six.string_types)):
+                and isinstance(v, str)):
                     v = v.split(',')
             if isinstance(filter_, filters.RangeFilter):
                 return [('%s_%i' % (k, i), V) for i, V in enumerate(v)]
